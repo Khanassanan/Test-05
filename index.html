@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BMI เว็บแอพ</title>
+  <meta name="description" content="เครื่องคำนวณดัชนีมวลกาย (BMI) แบบไฟล์เดียว ใช้งานได้ทั้งมือถือและเดสก์ท็อป" />
+  <style>
+    :root{
+      --bg:#0b1020; --card:#111834; --muted:#7f8fb3; --text:#eef2ff; --accent:#7c3aed; --ring:#94a3b8;
+      --good:#16a34a; --warn:#f59e0b; --bad:#ef4444; --mid:#3b82f6;
+    }
+    @media (prefers-color-scheme: light) {
+      :root{ --bg:#f5f7ff; --card:#ffffff; --muted:#5b6478; --text:#0b1020; --accent:#6d28d9; --ring:#cbd5e1; }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(124,58,237,.15), transparent 70%),
+                  radial-gradient(800px 400px at 110% 10%, rgba(59,130,246,.15), transparent 70%), var(--bg);
+      color:var(--text); display:grid; place-items:center; padding:24px;
+    }
+    .app{ width: min(980px, 100%); display:grid; gap:16px; }
+    header{display:flex; align-items:center; justify-content:space-between; gap:16px}
+    h1{font-size:clamp(22px, 3.2vw, 36px); margin:0; letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:14px}
+
+    .grid{display:grid; gap:16px; grid-template-columns: 1fr;}
+    @media (min-width: 880px){ .grid{ grid-template-columns: 1.1fr .9fr; } }
+
+    .card{ background:linear-gradient(180deg, color-mix(in oklab, var(--card), black 6%), color-mix(in oklab, var(--card), black 0%));
+      border:1px solid color-mix(in oklab, var(--card), white 6%);
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      border-radius:18px; padding:20px}
+
+    label{display:block; font-size:14px; color:var(--muted); margin:4px 0 6px}
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+
+    .input{display:flex; align-items:center; gap:8px; background: color-mix(in oklab, var(--card), white 2%);
+      border:1px solid var(--ring); border-radius:12px; padding:10px 12px}
+    .input input{flex:1; background:transparent; border:none; outline:none; color:var(--text); font-size:16px}
+    .unit{font-size:12px; color:var(--muted); padding-left:6px}
+
+    .controls{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+    button{appearance:none; border:none; cursor:pointer; border-radius:12px; padding:12px 16px; font-weight:600}
+    .primary{ background:var(--accent); color:white; box-shadow:0 8px 20px rgba(124,58,237,.35)}
+    .ghost{ background:transparent; color:var(--text); border:1px dashed var(--ring)}
+
+    .switch{display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; border:1px solid var(--ring)}
+    .switch input{appearance:none; width:42px; height:24px; background:var(--ring); border-radius:999px; position:relative; outline:none; cursor:pointer}
+    .switch input:checked{background:var(--mid)}
+    .switch input:after{content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:white; transition:.2s;}
+    .switch input:checked:after{transform:translateX(18px)}
+    .switch .label{font-size:13px; color:var(--muted)}
+
+    .result{display:grid; gap:10px; margin-top:12px}
+    .badge{display:inline-flex; align-items:center; gap:8px; font-weight:700; padding:8px 12px; border-radius:999px; width:max-content}
+    .badge small{opacity:.8; font-weight:600}
+    .bmi{ font-size: clamp(30px, 6vw, 52px); font-weight:800; letter-spacing:.5px}
+    .hint{font-size:14px; color:var(--muted)}
+
+    .range{margin-top:6px; font-size:14px}
+    .range b{font-weight:700}
+
+    .kpi{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:12px}
+    .kpi .pill{padding:10px 12px; border-radius:12px; text-align:center; border:1px solid color-mix(in oklab, var(--ring), black 6%)}
+    .pill strong{display:block}
+
+    .history{width:100%; border-collapse:collapse; margin-top:12px; font-size:14px}
+    .history th, .history td{padding:10px 12px; border-bottom:1px solid color-mix(in oklab, var(--ring), black 8%); text-align:left}
+    .history th{color:var(--muted); font-weight:600}
+    .history .cat{font-weight:700}
+
+    .cat--good{background: color-mix(in oklab, var(--good), white 85%); color: color-mix(in oklab, var(--good), black 10%)}
+    .cat--warn{background: color-mix(in oklab, var(--warn), white 85%); color: color-mix(in oklab, var(--warn), black 10%)}
+    .cat--bad{ background: color-mix(in oklab, var(--bad),  white 85%); color: color-mix(in oklab, var(--bad), black 10%)}
+    .cat--mid{ background: color-mix(in oklab, var(--mid),  white 85%); color: color-mix(in oklab, var(--mid), black 10%)}
+    footer{color:var(--muted); font-size:12px; text-align:center; margin-top:6px}
+  </style>
+</head>
+<body>
+  <main class="app" role="application" aria-label="BMI Calculator">
+    <header>
+      <div>
+        <h1>เครื่องคำนวณ BMI</h1>
+        <div class="sub">คำนวณดัชนีมวลกาย พร้อมคำแนะนำอย่างย่อ และบันทึกประวัติอัตโนมัติ</div>
+      </div>
+      <label class="switch" title="สลับมาตรฐานการแปลผล BMI">
+        <span class="label">เอเชีย</span>
+        <input id="asianToggle" type="checkbox" aria-label="ใช้เกณฑ์เอเชีย"/>
+      </label>
+    </header>
+
+    <section class="grid">
+      <!-- Left: Form and result -->
+      <section class="card" aria-labelledby="formTitle">
+        <h2 id="formTitle" style="margin:0 0 8px">กรอกข้อมูล</h2>
+        <div class="row">
+          <div>
+            <label for="height">ส่วนสูง</label>
+            <div class="input">
+              <input id="height" inputmode="decimal" placeholder="เช่น 170" aria-describedby="hUnit" />
+              <span id="hUnit" class="unit">ซม.</span>
+            </div>
+          </div>
+          <div>
+            <label for="weight">น้ำหนัก</label>
+            <div class="input">
+              <input id="weight" inputmode="decimal" placeholder="เช่น 65" aria-describedby="wUnit" />
+              <span id="wUnit" class="unit">กก.</span>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button class="primary" id="btnCalc">คำนวณ</button>
+          <button class="ghost" id="btnReset" type="button">ล้างค่า</button>
+        </div>
+
+        <div class="result" aria-live="polite">
+          <div class="badge cat--mid" id="categoryBadge" hidden>
+            <span>หมวดหมู่: <small id="categoryText">-</small></span>
+          </div>
+          <div class="bmi" id="bmiValue" hidden>–</div>
+          <div class="hint" id="hintText" hidden></div>
+          <div class="range" id="normalRange" hidden></div>
+          <div class="kpi" id="kpi" hidden>
+            <div class="pill"><small>BMI</small><strong id="kpiBmi">–</strong></div>
+            <div class="pill"><small>ส่วนสูง</small><strong id="kpiH">–</strong></div>
+            <div class="pill"><small>น้ำหนัก</small><strong id="kpiW">–</strong></div>
+            <div class="pill"><small>มาตรฐาน</small><strong id="kpiStd">สากล</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: History -->
+      <section class="card" aria-labelledby="historyTitle">
+        <h2 id="historyTitle" style="margin:0 0 8px">ประวัติการคำนวณ</h2>
+        <table class="history" id="historyTable" aria-describedby="historyDesc">
+          <caption id="historyDesc" class="visually-hidden" style="position:absolute;left:-10000px;">ผลลัพธ์ที่ผ่านมา</caption>
+          <thead><tr><th>เวลา</th><th>ส่วนสูง (ซม.)</th><th>น้ำหนัก (กก.)</th><th>BMI</th><th>หมวดหมู่</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </section>
+    </section>
+
+    <footer>
+      <p>เคล็ดลับ: กรอกข้อมูลแล้วกด Enter เพื่อคำนวณทันที • ปรับมาตรฐาน “เอเชีย/สากล” ได้ที่ตัวสลับด้านบน</p>
+    </footer>
+  </main>
+
+<script>
+(function(){
+  const h = document.getElementById('height');
+  const w = document.getElementById('weight');
+  const btn = document.getElementById('btnCalc');
+  const reset = document.getElementById('btnReset');
+  const asianToggle = document.getElementById('asianToggle');
+
+  const badge = document.getElementById('categoryBadge');
+  const catText = document.getElementById('categoryText');
+  const bmiEl = document.getElementById('bmiValue');
+  const hint = document.getElementById('hintText');
+  const range = document.getElementById('normalRange');
+  const kpi = document.getElementById('kpi');
+  const kpiBmi = document.getElementById('kpiBmi');
+  const kpiH = document.getElementById('kpiH');
+  const kpiW = document.getElementById('kpiW');
+  const kpiStd = document.getElementById('kpiStd');
+
+  const tb = document.getElementById('historyBody');
+
+  const toNum = (v)=> Number(String(v).replace(/,|\s/g,''));
+  const clamp = (x,min,max)=> Math.min(Math.max(x,min),max);
+
+  function calcBMI(heightCm, weightKg){
+    const m = heightCm/100; if(!m || m<=0) return NaN; return weightKg/(m*m);
+  }
+
+  function getCategory(bmi, asian){
+    // Return {label, key, tip}
+    if(isNaN(bmi)) return {label:'-', key:'mid', tip:''};
+    if(asian){
+      if(bmi < 18.5) return {label:'น้ำหนักน้อย', key:'warn', tip:'เพิ่มพลังงาน/โปรตีนให้เพียงพอ และตรวจสุขภาพถ้ามีน้ำหนักลดโดยไม่ตั้งใจ'};
+      if(bmi < 23)   return {label:'ปกติ (เอเชีย)', key:'good', tip:'คงสมดุลอาหาร ออกกำลังกายสม่ำเสมอ และนอนพอ'};
+      if(bmi < 25)   return {label:'ท้วม (เอเชีย)', key:'warn', tip:'เริ่มปรับพฤติกรรม ลดอาหารหวานมัน และเพิ่มกิจกรรมทางกาย'};
+      if(bmi < 30)   return {label:'อ้วน ระดับ 1', key:'bad', tip:'โฟกัสแคลอรี่ขาดดุล 300–500 kcal/วัน + เดินเร็ว/คาร์ดิโอ 150 นาที/สัปดาห์'};
+      return {label:'อ้วน ระดับ 2', key:'bad', tip:'ปรึกษาผู้เชี่ยวชาญเพื่อวางแผนโภชนาการและการออกกำลังกายที่ปลอดภัย'};
+    } else {
+      if(bmi < 18.5) return {label:'น้ำหนักน้อย', key:'warn', tip:'เพิ่มพลังงาน/โปรตีนให้เพียงพอ และตรวจสุขภาพถ้ามีน้ำหนักลดโดยไม่ตั้งใจ'};
+      if(bmi < 25)   return {label:'ปกติ', key:'good', tip:'คงสมดุลอาหาร ออกกำลังกายสม่ำเสมอ และนอนพอ'};
+      if(bmi < 30)   return {label:'ท้วม', key:'warn', tip:'เริ่มปรับพฤติกรรม ลดอาหารหวานมัน และเพิ่มกิจกรรมทางกาย'};
+      return {label:'อ้วน', key:'bad', tip:'โฟกัสแคลอรี่ขาดดุล 300–500 kcal/วัน + เดินเร็ว/คาร์ดิโอ 150 นาที/สัปดาห์'};
+    }
+  }
+
+  function normalWeightRange(heightCm, asian){
+    const m = heightCm/100; if(!m) return null;
+    const [lo, hi] = asian ? [18.5, 22.9] : [18.5, 24.9];
+    return [lo*m*m, hi*m*m];
+  }
+
+  function fmt(n, d=1){ return (isFinite(n)? n.toFixed(d): '–'); }
+  function nowStr(){ const d=new Date(); return d.toLocaleString(); }
+
+  function showResult(heightCm, weightKg){
+    const asian = asianToggle.checked; kpiStd.textContent = asian? 'เอเชีย':'สากล';
+    const bmi = calcBMI(heightCm, weightKg);
+    if(!isFinite(bmi)) { clearResult(); return; }
+
+    const {label, key, tip} = getCategory(bmi, asian);
+
+    badge.hidden = bmiEl.hidden = hint.hidden = range.hidden = kpi.hidden = false;
+
+    badge.className = `badge cat--${key}`; // color
+    catText.textContent = label;
+    bmiEl.textContent = `BMI = ${fmt(bmi, 2)}`;
+    hint.textContent = tip;
+
+    const r = normalWeightRange(heightCm, asian);
+    if(r){
+      range.textContent = `น้ำหนักที่เหมาะสมตามส่วนสูง ≈ ${fmt(r[0],1)}–${fmt(r[1],1)} กก.`;
+    }
+
+    kpiBmi.textContent = fmt(bmi,2);
+    kpiH.textContent = `${fmt(heightCm,0)} ซม.`;
+    kpiW.textContent = `${fmt(weightKg,1)} กก.`;
+
+    saveHistory({t:nowStr(), h:heightCm, w:weightKg, bmi: Number(bmi.toFixed(2)), cat: label, key});
+    renderHistory();
+  }
+
+  function clearResult(){
+    badge.hidden = bmiEl.hidden = hint.hidden = range.hidden = kpi.hidden = true;
+  }
+
+  function parseInputs(){
+    const height = clamp(toNum(h.value), 50, 260); // cm
+    const weight = clamp(toNum(w.value), 10, 400); // kg
+    return {height, weight};
+  }
+
+  function onCalc(){
+    const {height, weight} = parseInputs();
+    if(!height || !weight){ alert('กรุณากรอกส่วนสูงและน้ำหนักให้ถูกต้อง'); return; }
+    // Normalize inputs back if user typed weird chars
+    h.value = height; w.value = weight;
+    showResult(height, weight);
+  }
+
+  function onReset(){ h.value=''; w.value=''; clearResult(); }
+
+  // History
+  const KEY = 'bmi-history-v2';
+  function loadHistory(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch{ return []; } }
+  function saveHistory(entry){ const list = loadHistory(); list.unshift(entry); localStorage.setItem(KEY, JSON.stringify(list.slice(0,20))); }
+  function renderHistory(){
+    const list = loadHistory();
+    tb.innerHTML = list.map(i=>`<tr>
+      <td>${i.t}</td>
+      <td>${i.h}</td>
+      <td>${i.w}</td>
+      <td><span class="badge cat--${i.key}"><small>${i.bmi}</small></span></td>
+      <td class="cat">${i.cat}</td>
+    </tr>`).join('');
+  }
+
+  // Events
+  btn.addEventListener('click', onCalc);
+  reset.addEventListener('click', onReset);
+  h.addEventListener('keydown', e=>{ if(e.key==='Enter') onCalc(); });
+  w.addEventListener('keydown', e=>{ if(e.key==='Enter') onCalc(); });
+  asianToggle.addEventListener('change', ()=>{ const {height, weight} = parseInputs(); if(height&&weight) showResult(height, weight); });
+
+  // Init
+  renderHistory();
+})();
+</script>
+</body>
+</html>
